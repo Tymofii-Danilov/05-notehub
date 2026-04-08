@@ -1,27 +1,19 @@
 import css from "./App.module.css";
 import NoteList from "../NoteList/NoteList";
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { createNote, deleteNote, fetchNotes } from "../../services/NoteService";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { fetchNotes } from "../../services/noteService";
 import { useEffect, useState } from "react";
 import SearchBox from "../SearchBox/SearchBox";
 import Pagination from "../Pagination/Pagination";
 import Modal from "../Modal/Modal";
-import type { Note } from "../../types/note";
 import { useDebouncedCallback } from "use-debounce";
 import toast, { Toaster } from "react-hot-toast";
+import NoteForm from "../NoteForm/NoteForm";
 
 export default function App() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-
-  const queryClient = useQueryClient();
 
   const { data, error, isError, isLoading, isSuccess } = useQuery({
     queryKey: ["notes", page, query],
@@ -30,37 +22,6 @@ export default function App() {
   });
 
   const totalPages = data?.totalPages ?? 0;
-
-  const postMutation = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-      closeModal();
-    },
-  });
-
-  const addNote = (note: Note) => {
-    postMutation.mutate({ note });
-  };
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-
-  const removeNote = (id: number) => {
-    setDeletingId(id);
-    deleteMutation.mutate(
-      { id },
-      {
-        onSettled: () => {
-          setDeletingId(null);
-        },
-      },
-    );
-  };
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -71,8 +32,10 @@ export default function App() {
   };
 
   const findTasks = useDebouncedCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) =>
-      setQuery(event.target.value),
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setQuery(event.target.value);
+      setPage(1);
+    },
     500,
   );
 
@@ -117,18 +80,12 @@ export default function App() {
           </button>
         </header>
         {!isLoading && isSuccess && data.notes.length > 0 && (
-          <NoteList
-            notes={data.notes}
-            onRemove={removeNote}
-            isDeleting={deletingId}
-          />
+          <NoteList notes={data.notes} />
         )}
         {isModalOpen && (
-          <Modal
-            onClose={closeModal}
-            onAdd={addNote}
-            isPending={postMutation.isPending}
-          />
+          <Modal onClose={closeModal}>
+            <NoteForm onClose={closeModal} />
+          </Modal>
         )}
       </div>
     </>

@@ -2,11 +2,12 @@ import { ErrorMessage, Field, Form, Formik } from "formik";
 import css from "./NoteForm.module.css";
 import * as Yup from "yup";
 import type { Note } from "../../types/note";
+import { useId } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createNote } from "../../services/noteService";
 
 interface NoteFormProps {
   onClose: () => void;
-  onAdd: (note: Note) => void;
-  isPending: boolean;
 }
 
 const NoteFormSchema = Yup.object().shape({
@@ -17,17 +18,40 @@ const NoteFormSchema = Yup.object().shape({
     .required(),
 });
 
-export default function NoteForm({ onClose, onAdd, isPending }: NoteFormProps) {
+export default function NoteForm({ onClose }: NoteFormProps) {
+  const id = useId();
+
+  const queryClient = useQueryClient();
+
+  const postMutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      onClose();
+    },
+  });
+
+  const addNote = ({ title, content, tag }: Note) => {
+    postMutation.mutate({ title, content, tag });
+  };
+
   return (
     <Formik<Note>
       initialValues={{
         title: "",
         content: "",
         tag: "Todo",
+        createdAt: "",
+        updatedAt: "",
+        id: "",
       }}
       validationSchema={NoteFormSchema}
       onSubmit={(values, formikHelpers) => {
-        onAdd(values);
+        addNote(
+          ((values.createdAt = String(Date.now())), (values.id = id), values),
+        );
+        console.log(values);
+
         formikHelpers.resetForm();
       }}
     >
@@ -41,6 +65,7 @@ export default function NoteForm({ onClose, onAdd, isPending }: NoteFormProps) {
         <div className={css.formGroup}>
           <label htmlFor="content">Content</label>
           <Field
+            as="textarea"
             id="content"
             name="content"
             rows={8}
@@ -66,7 +91,7 @@ export default function NoteForm({ onClose, onAdd, isPending }: NoteFormProps) {
             Cancel
           </button>
           <button type="submit" className={css.submitButton} disabled={false}>
-            {isPending ? "Creating..." : "Create note"}
+            {postMutation.isPending ? "Creating..." : "Create note"}
           </button>
         </div>
       </Form>

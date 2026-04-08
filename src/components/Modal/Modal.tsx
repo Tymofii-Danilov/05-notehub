@@ -1,16 +1,13 @@
 import { createPortal } from "react-dom";
-import NoteForm from "../NoteForm/NoteForm";
 import css from "./Modal.module.css";
 import { useEffect } from "react";
-import type { Note } from "../../types/note";
 
 interface ModalProps {
   onClose: () => void;
-  onAdd: (note: Note) => void;
-  isPending: boolean;
+  children: React.ReactNode;
 }
 
-export default function Modal({ onClose, onAdd, isPending }: ModalProps) {
+export default function Modal({ onClose, children }: ModalProps) {
   const handleBackDropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.currentTarget === event.target) {
       onClose();
@@ -36,9 +33,7 @@ export default function Modal({ onClose, onAdd, isPending }: ModalProps) {
       role="dialog"
       aria-modal="true"
     >
-      <div className={css.modal}>
-        <NoteForm onClose={onClose} onAdd={onAdd} isPending={isPending} />
-      </div>
+      <div className={css.modal}>{children}</div>
     </div>,
     document.body,
   );
