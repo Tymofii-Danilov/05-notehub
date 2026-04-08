@@ -7,9 +7,10 @@ import type { Note } from "../../types/note";
 interface ModalProps {
   onClose: () => void;
   onAdd: (note: Note) => void;
+  isPending: boolean;
 }
 
-export default function Modal({ onClose, onAdd }: ModalProps) {
+export default function Modal({ onClose, onAdd, isPending }: ModalProps) {
   const handleBackDropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.currentTarget === event.target) {
       onClose();
@@ -36,7 +37,7 @@ export default function Modal({ onClose, onAdd }: ModalProps) {
       aria-modal="true"
     >
       <div className={css.modal}>
-        <NoteForm onClose={onClose} onAdd={onAdd} />
+        <NoteForm onClose={onClose} onAdd={onAdd} isPending={isPending} />
       </div>
     </div>,
     document.body,

@@ -7,17 +7,19 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createNote, deleteNote, fetchNotes } from "../../services/NoteService";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SearchBox from "../SearchBox/SearchBox";
 import Pagination from "../Pagination/Pagination";
 import Modal from "../Modal/Modal";
 import type { Note } from "../../types/note";
 import { useDebouncedCallback } from "use-debounce";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function App() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -33,6 +35,7 @@ export default function App() {
     mutationFn: createNote,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
+      closeModal();
     },
   });
 
@@ -48,7 +51,15 @@ export default function App() {
   });
 
   const removeNote = (id: number) => {
-    deleteMutation.mutate({ id });
+    setDeletingId(id);
+    deleteMutation.mutate(
+      { id },
+      {
+        onSettled: () => {
+          setDeletingId(null);
+        },
+      },
+    );
   };
 
   const openModal = () => {
@@ -65,12 +76,36 @@ export default function App() {
     500,
   );
 
+  useEffect(() => {
+    if (isSuccess && data.notes.length === 0) {
+      toast.error("No notes");
+    }
+  }, [isSuccess, data]);
+
+  useEffect(() => {
+    if (isError) {
+      toast.error(error.message);
+    }
+  }, [isError, error]);
+
+  useEffect(() => {
+    if (isLoading) {
+      toast.loading("Loading...", { id: "loading-toast" });
+    }
+    return () => {
+      toast.dismiss("loading-toast");
+    };
+  }, [isLoading]);
+
   return (
     <>
+      <div>
+        <Toaster position="top-center" reverseOrder={false} />
+      </div>
       <div className={css.app}>
         <header className={css.toolbar}>
           <SearchBox findTasks={findTasks} />
-          {totalPages > 0 && (
+          {totalPages > 1 && (
             <Pagination
               totalPages={totalPages}
               currentPage={page}
@@ -81,12 +116,20 @@ export default function App() {
             Create note +
           </button>
         </header>
-        {isError && error.message}
-        {isLoading && <p>Loading...</p>}
-        {isSuccess && data.notes.length > 0 && (
-          <NoteList notes={data.notes} onRemove={removeNote} />
+        {!isLoading && isSuccess && data.notes.length > 0 && (
+          <NoteList
+            notes={data.notes}
+            onRemove={removeNote}
+            isDeleting={deletingId}
+          />
         )}
-        {isModalOpen && <Modal onClose={closeModal} onAdd={addNote} />}
+        {isModalOpen && (
+          <Modal
+            onClose={closeModal}
+            onAdd={addNote}
+            isPending={postMutation.isPending}
+          />
+        )}
       </div>
     </>
   );

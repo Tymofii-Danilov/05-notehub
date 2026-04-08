@@ -4,9 +4,14 @@ import css from "./NoteList.module.css";
 interface NoteListProps {
   notes: Note[];
   onRemove: (id: number) => void;
+  isDeleting: number | null;
 }
 
-export default function NoteList({ notes, onRemove }: NoteListProps) {
+export default function NoteList({
+  notes,
+  onRemove,
+  isDeleting,
+}: NoteListProps) {
   return (
     <ul className={css.list}>
       {notes.map(({ id, title, content, tag }) => (
@@ -16,7 +21,7 @@ export default function NoteList({ notes, onRemove }: NoteListProps) {
           <div className={css.footer}>
             <span className={css.tag}>{tag}</span>
             <button onClick={() => id && onRemove(id)} className={css.button}>
-              Delete
+              {isDeleting === id ? "Processing..." : "Delete"}
             </button>
           </div>
         </li>

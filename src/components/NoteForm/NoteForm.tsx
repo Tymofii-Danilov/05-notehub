@@ -6,6 +6,7 @@ import type { Note } from "../../types/note";
 interface NoteFormProps {
   onClose: () => void;
   onAdd: (note: Note) => void;
+  isPending: boolean;
 }
 
 const NoteFormSchema = Yup.object().shape({
@@ -16,7 +17,7 @@ const NoteFormSchema = Yup.object().shape({
     .required(),
 });
 
-export default function NoteForm({ onClose, onAdd }: NoteFormProps) {
+export default function NoteForm({ onClose, onAdd, isPending }: NoteFormProps) {
   return (
     <Formik<Note>
       initialValues={{
@@ -65,7 +66,7 @@ export default function NoteForm({ onClose, onAdd }: NoteFormProps) {
             Cancel
           </button>
           <button type="submit" className={css.submitButton} disabled={false}>
-            Create note
+            {isPending ? "Creating..." : "Create note"}
           </button>
         </div>
       </Form>
